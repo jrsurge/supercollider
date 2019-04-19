@@ -364,7 +364,9 @@ void HelpBrowser::evaluateSelection(bool evaluateRegion)
     QString selected = mWebView->selectedText();
     if (!selected.isEmpty()) {
         Main::scProcess()->evaluateCode(selected);
-    } {
+    }
+    else
+    {
         mWebView->page()->runJavaScript( evaluateRegion ? jsSelectRegion : jsSelectLine, [this](QVariant res){
             QString selectionResult = res.toString();
             if (!selectionResult.isEmpty()) {
