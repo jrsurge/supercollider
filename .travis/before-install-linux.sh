@@ -1,5 +1,20 @@
 #!/bin/bash
 
+if $DO_LINT; then
+    pushd . >/dev/null
+    cd ..
+    echo "Downloading and extracting Clang 8.0.0"
+    RELEASE_NAME=clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-14.04
+    curl -sSo clang.tar.xz releases.llvm.org/8.0.0/$RELEASE_NAME.tar.xz
+    tar xf clang.tar.xz
+    cd $RELEASE_NAME/bin
+    export PATH=$(pwd):$PATH
+    echo "Added clang-format in $(pwd) to PATH"
+    popd >/dev/null
+
+    tools/clang-format.py lintall || exit 1
+fi
+
 npm install -g lintspaces-cli
 sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test
 sudo add-apt-repository --yes ppa:beineri/opt-qt591-trusty
