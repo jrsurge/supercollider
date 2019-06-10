@@ -5,7 +5,7 @@ TestPathName : UnitTest {
 
 		this.skipOnPredicate( { thisProcess.platform.name == \windows }, thisMethod );
 
-		this.assertEquals(result, expected, "")
+		this.assertEquals(result, expected, "");
 	}
 
 	test_absNixPathOnWin_isAbsolute {
@@ -20,6 +20,7 @@ TestPathName : UnitTest {
 	test_absWinPathOnWin_isAbsolute {
 		var result = PathName("C:\\").isAbsolutePath;
 		var expected = true;
+
 		this.skipOnPredicate( { thisProcess.platform.name != \windows }, thisMethod );
 
 		this.assertEquals(result, expected, "");

@@ -76,11 +76,9 @@ UnitTest {
 			try {
 				this.perform(method.name);
 			} { | error |
-				if(error.isKindOf(SkipOnPredicateError))
-				{
+				if(error.isKindOf(SkipOnPredicateError)) {
 					error.what.warn;
-				}
-				{
+				} {
 					// rethrow
 					error.throw;
 				};
@@ -294,6 +292,7 @@ UnitTest {
 		};
 	}
 
+	// throws a special error that gets caught in the run call
 	skipOnPredicate { | predFunc, method |
 		if (predFunc.value == true) {
 			SkipOnPredicateError("Skipping %.% on predicate - %".format(this.class, method.name, predFunc.asCompileString)).throw;
