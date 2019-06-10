@@ -1,3 +1,9 @@
+SkipOnPredicateError : Error {
+	*new { | what |
+		^super.new(what);
+	}
+}
+
 UnitTest {
 
 	var currentMethod;
