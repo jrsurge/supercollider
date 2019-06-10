@@ -73,7 +73,18 @@ UnitTest {
 		this.class.forkIfNeeded {
 			this.setUp;
 			currentMethod = method;
-			this.perform(method.name);
+			try {
+				this.perform(method.name);
+			} { | error |
+				if(error.isKindOf(SkipOnPredicateError))
+				{
+					error.what.warn;
+				}
+				{
+					// rethrow
+					error.throw;
+				};
+			};
 			this.tearDown;
 			if(report) { this.class.report };
 		}
@@ -283,11 +294,9 @@ UnitTest {
 		};
 	}
 
-	skipOnPredicate { | predFunc, testFunc, method |
+	skipOnPredicate { | predFunc, method |
 		if (predFunc.value == true) {
-			"Skipping %.% on predicate - %".format(this.class, method.name, predFunc.asCompileString).warn;
-		} {
-			testFunc.value;
+			SkipOnPredicateError("Skipping %.% on predicate - %".format(this.class, method.name, predFunc.asCompileString)).throw;
 		};
 	}
 
