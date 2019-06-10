@@ -277,6 +277,14 @@ UnitTest {
 		};
 	}
 
+	skipOnPredicate { | predFunc, testFunc, method |
+		if (predFunc.value == true) {
+			"Skipping %.% on predicate - %".format(this.class, method.name, predFunc.asCompileString).warn;
+		} {
+			testFunc.value;
+		};
+	}
+
 	// PRIVATE IMPLEMENTATION
 	// these are mostly private
 	// don't use this directly,
