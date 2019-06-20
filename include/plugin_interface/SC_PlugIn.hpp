@@ -27,6 +27,23 @@
 
 #include <type_traits>
 
+#include <memory>
+#include <functional>
+
+// rtalloc_ptr is a smart pointer that uses SC's real-time deallocation
+// Used with RTSmartAlloc, it provides automatic cleanup of dynamically allocated memory
+template <typename data_type> using rtalloc_ptr = std::unique_ptr<data_type, std::function<void(data_type* mem)>>;
+
+// RTSmartAlloc
+// This wraps around SC's real-time allocator, returning an rtalloc_ptr
+template <typename data_type> rtalloc_ptr<data_type> RTSmartAlloc(World* world, size_t count) {
+    data_type* mem = static_cast<data_type*>(RTAlloc(world, sizeof(data_type) * count));
+
+    return {
+        mem, [&](data_type* mem) { RTFree(world, static_cast<void*>(mem)); }
+    };
+}
+
 /// c++ wrapper for Unit struct
 class SCUnit : public Unit {
 public:
