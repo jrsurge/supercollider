@@ -129,6 +129,82 @@ SequenceableCollection : Collection {
 		^true
 	}
 
+	editDistance { | other, compareFunc |
+		// only resort to the calculation if we have to
+		if(this === other) {
+			^0;
+		};
+
+		// comparison matrix is other.size
+		// reduce the memory footprint by ensuring
+		// other is the smaller array
+
+		if(this.size < other.size) {
+			^other.editDistance(this, compareFunc);
+		};
+
+		if(compareFunc.isNil) {
+			// call the primitive
+			^this.prEditDistance(other, compareFunc);
+		} {
+			// call the sclang implementation
+			^this.prLevenshteinDistance(other, compareFunc);
+		};
+	}
+
+	prEditDistance { | other, compareFunc |
+		_ArrayLevenshteinDistance
+		^this.prLevenshteinDistance(other, compareFunc);
+	}
+
+	prLevenshteinDistance { | other, compareFunc |
+		// This is the same algorithm as the primitive, just in
+		// sclang to allow equality
+		var matrix = Array.fill(other.size + 1, { | ind | ind; });
+		var upper, corner;
+
+		if(this.size == 0) {
+			^other.size;
+		};
+
+		if(other.size == 0) {
+			^this.size;
+		};
+
+		// use identity if not given another way to compare
+		compareFunc = compareFunc ? { | a, b | a === b; };
+
+		this.size.do({ | indX |
+			corner = indX;
+			matrix[0] = indX + 1;
+
+			other.size.do({ | indY |
+				upper = matrix[indY + 1];
+
+				if(compareFunc.value(this.at(indX), other.at(indY))) {
+					matrix[indY + 1] = corner;
+				} {
+					matrix[indY + 1] = [upper, corner, matrix[indY]].minItem + 1;
+				};
+
+				corner = upper;
+			});
+		});
+
+		^matrix[other.size];
+	}
+
+	similarity { | other, compareFunc |
+		var maxDistance = max(this.size, other.size);
+		var simVal = 1; // assume empty
+
+		if(maxDistance > 0) {
+			simVal = 1 - (this.editDistance(other, compareFunc) / maxDistance);
+		};
+
+		^simVal;
+	}
+
 	hash {
 		var hash = this.class.hash;
 		this.do { | item |
