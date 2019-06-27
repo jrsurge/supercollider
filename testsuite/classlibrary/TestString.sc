@@ -153,4 +153,111 @@ TestString : UnitTest {
 		this.assertEquals(result, Array.new, "Non-matching findRegexp should return empty array");
 	}
 
+	// ----- fuzzy string comparisons --------------------------------------------
+
+	test_editDistance_emptyThis_isSizeThat {
+		var result = "".editDistance("hello");
+		var expected = 5;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_emptyThat_isSizeThis {
+		var result = "hello".editDistance("");
+		var expected = 5;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_emptyThis_emptyThat_isZero {
+		var result = "".editDistance("");
+		var expected = 0;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsSubstitution {
+		var result = "hello".editDistance("hallo");
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsAddition {
+		var result = "hello".editDistance("helloo");
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsRemoval {
+		var result = "hello".editDistance("hell");
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsChanges {
+		var result = "hello".editDistance("string");
+		var expected = 6; // h:s, e:t, l:r, l:i, o:n, addition:g
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_emptyThis_emptyThat_isOne {
+		var result = "".similarity("");
+		var expected = 1; // they're the same, even though they're empty
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_sameWord_isOne {
+		var result = "hello".similarity("hello");
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_differentWord_isZero {
+		var result = "hello".similarity("asdf");
+		var expected = 0;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_isSimilar_emptyThis_emptyThat_isTrue {
+		var result = "".isSimilar("");
+		var expected = true;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_isSimilar_sameWord_isTrue {
+		var result = "hello".isSimilar("hello");
+		var expected = true;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_isSimilar_differentWord_isFalse {
+		var result = "hello".isSimilar("asdf");
+		var expected = false;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_isSimilar_similarWordWithinDelta_isTrue {
+		var result = "word".isSimilar("wodr"); // 50% change
+		var expected = true;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_isSimilar_similarWordOutsideDelta_isFalse {
+		var result = "word".isSimilar("wraps"); // >50% change
+		var expected = false;
+
+		this.assertEquals(result, expected);
+	}
+
 }
