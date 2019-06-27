@@ -553,4 +553,68 @@ String[char] : RawArray {
 	parseJSONFile {
 		^this.parseYAMLFile
 	}
+
+	// ----- fuzzy string comparisons --------------------------------------------
+
+	// Levenshtein distance
+	// counts the number of changes required to convert this string into the other string
+	// this is an implementation of the Wagner-Fischer algorithm
+	editDistance { | otherString="" |
+		var sizeX = this.size + 1;
+		var sizeY = otherString.size + 1;
+		var matrix = Array.fill2D(sizeX, sizeY, {0});
+
+		// empty string optimisation
+		if(this.size == 0) {
+			^otherString.size;
+		};
+
+		if(otherString.size == 0) {
+			^this.size;
+		};
+
+		// initialise the matrix
+		sizeX.do({ | indX |
+			matrix[indX][0] = indX;
+		});
+		sizeY.do({ | indY |
+			matrix[0][indY] = indY;
+		});
+
+		// calculate distances
+		for(1, this.size) { | indX |
+			for(1, otherString.size) { | indY |
+				var cost = 0;
+
+				if(this.at(indX - 1) != otherString.at(indY - 1)) {
+					cost = 1;
+				};
+
+				// find the least expensive operation to convert
+				matrix[indX][indY] = [
+					matrix[indX - 1][indY] + 1, // insertion
+					matrix[indX][indY - 1] + 1, // deletion
+					matrix[indX - 1][indY - 1] + cost // substitution
+				].minItem;
+			};
+		};
+
+		^matrix[this.size][otherString.size];
+	}
+
+	similarity { | otherString="" |
+		var maxDistance = max(this.size, otherString.size);
+		var simVal = 1; // assume empty strings, so equal
+
+		if(maxDistance > 0) {
+			simVal = 1 - (this.editDistance(otherString) / maxDistance);
+		};
+
+		^simVal;
+	}
+
+	isSimilar { | otherString="", delta=0.5 |
+		^(this.similarity(otherString) >= delta);
+	}
+
 }
