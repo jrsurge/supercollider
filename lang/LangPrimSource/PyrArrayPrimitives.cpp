@@ -30,6 +30,9 @@ Primitives for Arrays.
 #include "SC_Constants.h"
 #include <string.h>
 
+#include "SC_Levenshstein.h"
+#include <algorithm>
+
 int basicSize(VMGlobals* g, int numArgsPushed);
 int basicMaxSize(VMGlobals* g, int numArgsPushed);
 
@@ -2474,6 +2477,95 @@ int prArrayUnlace(struct VMGlobals* g, int numArgsPushed) {
     return errNone;
 }
 
+int arrayLevenshteinDistance(struct VMGlobals* g, PyrSlot* result, PyrObject* thisArray, PyrObject* thatArray) {
+    int distance = sc_max(thisArray->size, thatArray->size); // assume they're completely different
+
+    if (thisArray->size == 0) {
+        distance = thatArray->size;
+        SetInt(result, distance);
+        return errNone;
+    }
+
+    if (thatArray->size == 0) {
+        distance = thisArray->size;
+        SetInt(result, distance);
+        return errNone;
+    }
+
+    // if they're both the same format we can compare them..
+    if (thisArray->obj_format == thatArray->obj_format) {
+        switch (thisArray->obj_format) {
+        // if they're raw arrays, compare as such
+        case obj_char:
+            distance = levenshteinDistance<char>()(reinterpret_cast<char*>(thisArray->slots), thisArray->size,
+                                                   reinterpret_cast<char*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_double:
+            distance = levenshteinDistance<double>()(reinterpret_cast<double*>(thisArray->slots), thisArray->size,
+                                                     reinterpret_cast<double*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_float:
+            distance = levenshteinDistance<float>()(reinterpret_cast<float*>(thisArray->slots), thisArray->size,
+                                                    reinterpret_cast<float*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_int16:
+            distance = levenshteinDistance<int16>()(reinterpret_cast<int16*>(thisArray->slots), thisArray->size,
+                                                    reinterpret_cast<int16*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_int32:
+            distance = levenshteinDistance<int32>()(reinterpret_cast<int32*>(thisArray->slots), thisArray->size,
+                                                    reinterpret_cast<int32*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_int8:
+            distance = levenshteinDistance<int8>()(reinterpret_cast<int8*>(thisArray->slots), thisArray->size,
+                                                   reinterpret_cast<int8*>(thatArray->slots), thatArray->size);
+            break;
+        case obj_slot: {
+            // if it's slotted, compare identities
+            // this will handle polymorphic arrays in a predictable way
+            auto calcDistance = levenshteinDistance<PyrSlot>();
+
+            distance = calcDistance(thisArray->slots, thisArray->size, thatArray->slots, thatArray->size,
+                                    [](const PyrSlot& a, const PyrSlot& b) {
+                                        return SlotEq(const_cast<PyrSlot*>(&a), const_cast<PyrSlot*>(&b));
+                                    });
+
+            break;
+        } // obj_slot scope
+        default:
+            return errWrongType; // shouldn't really hit this, but just in case
+        } // switch scope
+    } else {
+        return errWrongType;
+    }
+
+    SetInt(result, distance);
+    return errNone;
+}
+
+int prArrayLevenshteinDistance(struct VMGlobals* g, int numArgsPushed) {
+    auto args = g->sp - numArgsPushed + 1;
+
+    auto slt_thisArray = args + 0;
+    auto slt_thatArray = args + 1;
+
+    if (NotObj(slt_thisArray))
+        return errWrongType;
+    if (NotObj(slt_thatArray))
+        return errWrongType;
+
+    auto obj_thisArray = slotRawObject(slt_thisArray);
+    auto obj_thatArray = slotRawObject(slt_thatArray);
+
+    if (!(slotRawInt(&obj_thisArray->classptr->classFlags) & classHasIndexableInstances))
+        return errNotAnIndexableObject;
+
+    if (!(slotRawInt(&obj_thatArray->classptr->classFlags) & classHasIndexableInstances))
+        return errNotAnIndexableObject;
+
+    return arrayLevenshteinDistance(g, slt_thisArray, obj_thisArray, obj_thatArray);
+}
+
 void initArrayPrimitives() {
     int base, index;
 
@@ -2532,9 +2624,9 @@ void initArrayPrimitives() {
     definePrimitive(base, index++, "_ArrayEnvAt", prArrayEnvAt, 2, 0);
     definePrimitive(base, index++, "_ArrayIndexOfGreaterThan", prArrayIndexOfGreaterThan, 2, 0);
     definePrimitive(base, index++, "_ArrayUnlace", prArrayUnlace, 3, 0);
+
+    definePrimitive(base, index++, "_ArrayLevenshteinDistance", prArrayLevenshteinDistance, 2, 0);
 }
-
-
 #if _SC_PLUGINS_
 
 #    include "SCPlugin.h"
