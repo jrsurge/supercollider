@@ -91,6 +91,38 @@ ArrayedCollection : SequenceableCollection {
 		}
 	}
 
+	editDistance { | other |
+		// only resort to the calculation if we have to
+		if((this === other) || (this == other)) {
+			^0;
+		};
+
+		// comparison matrix is len(other)
+		// reduce the memory footprint by ensuring
+		// other is the smaller array
+		if(this.size < other.size) {
+			^other.prEditDistance(this);
+		} {
+			^this.prEditDistance(other);
+		};
+	}
+
+	prEditDistance { | other |
+		_ArrayLevenshteinDistance
+		^this.primitiveFailed;
+	}
+
+	similarity { | other="" |
+		var maxDistance = max(this.size, other.size);
+		var simVal = 1; // assume empty
+
+		if(maxDistance > 0) {
+			simVal = 1 - (this.editDistance(other) / maxDistance);
+		};
+
+		^simVal;
+	}
+
 	replace { arg find, replace;
 		var index, out = [], array = this;
 		find = find.asArray;
