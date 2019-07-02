@@ -31,6 +31,7 @@ Primitives for Arrays.
 #include <string.h>
 
 #include "SC_Levenshstein.h"
+#include <algorithm>
 
 int basicSize(VMGlobals* g, int numArgsPushed);
 int basicMaxSize(VMGlobals* g, int numArgsPushed);
@@ -2491,6 +2492,33 @@ int arrayLevenshteinDistance(struct VMGlobals* g, PyrSlot* result, PyrObject* th
         return errNone;
     }
 
+    // create a slot calculator
+    auto calcDistanceSlots = levenshteinDistance<PyrSlot>();
+    // create a default slot-by-slot comparison
+    std::function<bool(const PyrSlot&, const PyrSlot&)> slotComparison = [](const PyrSlot& a, const PyrSlot& b) {
+        bool areEqual = false;
+
+        if (GetTag(&a) == GetTag(&b)) {
+            switch (GetTag(&a)) {
+            case tagChar:
+                areEqual = slotRawChar(&a) == slotRawChar(&b);
+                break;
+            case tagFloat:
+                areEqual = slotRawFloat(&a) == slotRawFloat(&b);
+                break;
+            case tagInt:
+                areEqual = slotRawInt(&a) == slotRawInt(&b);
+                break;
+            default:
+                areEqual = SlotEq(const_cast<PyrSlot*>(&a), const_cast<PyrSlot*>(&b));
+            }
+        } else {
+            areEqual = SlotEq(const_cast<PyrSlot*>(&a), const_cast<PyrSlot*>(&b));
+        }
+
+        return areEqual;
+    };
+
     // if they're the same, we can do direct comparisons..
     if (thisArray->obj_format == thatArray->obj_format) {
         switch (thisArray->obj_format) {
@@ -2519,54 +2547,51 @@ int arrayLevenshteinDistance(struct VMGlobals* g, PyrSlot* result, PyrObject* th
                                                    reinterpret_cast<int8*>(thatArray->slots), thatArray->size);
             break;
         case obj_slot: {
-            if (GetTag(thisArray->slots) == GetTag(thatArray->slots)) {
-                // by default, just compare the slots (this is identity, but it's something for now)
-                std::function<bool(const PyrSlot&, const PyrSlot&)> compFunc = [](const PyrSlot& a, const PyrSlot& b) {
-                    return SlotEq(const_cast<PyrSlot*>(&a), const_cast<PyrSlot*>(&b));
-                };
+            auto calcDistance = levenshteinDistance<PyrSlot>();
 
-                switch (GetTag(thisArray->slots)) {
-                case tagChar:
-                    compFunc = [](const PyrSlot& a, const PyrSlot& b) { return slotRawChar(&a) == slotRawChar(&b); };
-                    break;
-                case tagFloat:
-                    compFunc = [](const PyrSlot& a, const PyrSlot& b) { return slotRawFloat(&a) == slotRawFloat(&b); };
-                    break;
-                case tagInt:
-                    compFunc = [](const PyrSlot& a, const PyrSlot& b) { return slotRawInt(&a) == slotRawInt(&b); };
-                    break;
-                case tagObj:
-                    compFunc = [&](const PyrSlot& a, const PyrSlot& b) {
-                        bool areEqual = false;
+            auto thisTag = GetTag(thisArray->slots);
+            auto thatTag = GetTag(thatArray->slots);
 
-                        auto objA = slotRawObject(&a);
-                        auto objB = slotRawObject(&b);
+            // if they're the same and homogeneous, we can simplify the comparison..
+            if (thisTag == thatTag) {
+                bool thisHomogeneous = std::any_of(thisArray->slots + 1, thisArray->slots + thisArray->size,
+                                                   [=](const PyrSlot& a) { return thisTag != GetTag(&a); });
 
-                        // <--- no idea how to compare objects
+                bool thatHomogeneous = std::any_of(thatArray->slots + 1, thatArray->slots + thatArray->size,
+                                                   [=](const PyrSlot& b) { return thatTag != GetTag(&b); });
 
-                        return areEqual;
-                    };
+                if (thisHomogeneous && thatHomogeneous) {
+                    switch (GetTag(thisArray->slots)) {
+                    case tagChar:
+                        slotComparison = [](const PyrSlot& a, const PyrSlot& b) {
+                            return slotRawChar(&a) == slotRawChar(&b);
+                        };
+                        break;
+                    case tagFloat:
+                        slotComparison = [](const PyrSlot& a, const PyrSlot& b) {
+                            return slotRawFloat(&a) == slotRawFloat(&b);
+                        };
+                        break;
+                    case tagInt:
+                        slotComparison = [](const PyrSlot& a, const PyrSlot& b) {
+                            return slotRawInt(&a) == slotRawInt(&b);
+                        };
+                        break;
+                    default:
+                        slotComparison = [](const PyrSlot& a, const PyrSlot& b) {
+                            return SlotEq(const_cast<PyrSlot*>(&a), const_cast<PyrSlot*>(&b));
+                        };
+                    }
                 }
-
-                distance = levenshteinDistance<PyrSlot>()(thisArray->slots, thisArray->size, thatArray->slots,
-                                                          thatArray->size, compFunc);
-                break;
-            } else {
-                // otherwise we have to compare them as objects
-                distance = levenshteinDistance<PyrSlot>()(thisArray->slots, thisArray->size, thatArray->slots,
-                                                          thatArray->size, [&](const PyrSlot& a, const PyrSlot& b) {
-                                                              bool areEqual = false;
-
-                                                              auto objA = slotRawObject(&a);
-                                                              auto objB = slotRawObject(&b);
-
-                                                              // <--- no idea how to compare objects
-
-                                                              return areEqual;
-                                                          });
             }
-        }
-        }
+
+            distance =
+                calcDistanceSlots(thisArray->slots, thisArray->size, thatArray->slots, thatArray->size, slotComparison);
+        } // obj_slot scope
+        } // switch scope
+    } else {
+        distance =
+            calcDistanceSlots(thisArray->slots, thisArray->size, thatArray->slots, thatArray->size, slotComparison);
     }
 
     SetInt(result, distance);
