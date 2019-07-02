@@ -2618,7 +2618,6 @@ int prArrayLevenshteinDistance(struct VMGlobals* g, int numArgsPushed) {
     if (!(slotRawInt(&obj_thatArray->classptr->classFlags) & classHasIndexableInstances))
         return errNotAnIndexableObject;
 
-
     return arrayLevenshteinDistance(g, slt_thisArray, obj_thisArray, obj_thatArray);
 }
 
