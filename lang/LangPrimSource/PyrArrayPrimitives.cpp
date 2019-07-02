@@ -29,12 +29,8 @@ Primitives for Arrays.
 #include "SC_InlineBinaryOp.h"
 #include "SC_Constants.h"
 #include <string.h>
-#include <memory>
-#include <functional>
 
 #include "SC_Levenshstein.h"
-#include "SCBase.h"
-#include "PyrSymbol.h"
 
 int basicSize(VMGlobals* g, int numArgsPushed);
 int basicMaxSize(VMGlobals* g, int numArgsPushed);
