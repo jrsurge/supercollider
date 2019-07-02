@@ -129,6 +129,68 @@ SequenceableCollection : Collection {
 		^true
 	}
 
+	editDistance { | other |
+		// only resort to the calculation if we have to
+		if((this === other) || (this == other)) {
+			^0;
+		};
+
+		// comparison matrix is other.size
+		// reduce the memory footprint by ensuring
+		// other is the smaller array
+		if(this.size < other.size) {
+			^other.prEditDistance(this);
+		} {
+			^this.prEditDistance(other);
+		};
+	}
+
+	prEditDistance { | other |
+		// NOTE: ArrayedCollection overrides this with a primitive.
+		// This is the same algorithm as the ArrayedCollection primitive, just
+		// in sclang to allow object comparison
+		var matrix = Array.fill(other.size + 1, { | ind | ind; });
+		var upper, corner;
+
+		if(this.size == 0) {
+			^other.size;
+		};
+
+		if(other.size == 0) {
+			^this.size;
+		};
+
+		this.size.do({ | indX |
+			corner = indX;
+			matrix[0] = indX + 1;
+
+			other.size.do({ | indY |
+				upper = matrix[indY + 1];
+
+				if(this.at(indX) == other.at(indY)) {
+					matrix[indY + 1] = corner;
+				} {
+					matrix[indY + 1] = [upper, corner, matrix[indY]].minItem + 1;
+				};
+
+				corner = upper;
+			});
+		});
+
+		^matrix[other.size];
+	}
+
+	similarity { | other |
+		var maxDistance = max(this.size, other.size);
+		var simVal = 1; // assume empty
+
+		if(maxDistance > 0) {
+			simVal = 1 - (this.editDistance(other) / maxDistance);
+		};
+
+		^simVal;
+	}
+
 	hash {
 		var hash = this.class.hash;
 		this.do { | item |
