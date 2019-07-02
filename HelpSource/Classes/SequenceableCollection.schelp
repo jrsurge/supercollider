@@ -636,6 +636,38 @@ code::
 "SuperMan".hammingDistance("SuperCollider");
 ::
 
+subsection:: Fuzzy comparisons
+With fuzzy comparisons, the arrays don't need to match exactly. We can check how similar they are, and make decisions based on that. This is the magic behind autocorrection.
+
+method::editDistance
+Returns the mininum number of changes to modify this SequenceableCollection into the other SequenceableCollection.
+A change can be: an addition, a deletion, or a substitution.
+This is known as the Levenshtein Distance and is implemented in SuperCollider using the Wagner–Fischer algorithm.
+
+note::While distances for all SequenceableCollections can be calculated, link::Classes/ArrayedCollection:: and its subclasses have a special implementation that uses a primitive to perform the calculation much faster. Comparisons on SequenceableCollections that aren't ArrayedCollections, like link::Classes/LinkedList::, can take a strong::very long time:: as they rely on evaluating the code::==:: expression on each object::
+
+code::
+"hello".editDistance("hallo"); // 1 (substitution)
+"hello".editDistance("hell"); // 1 (deletion)
+"hello".editDistance("helloo"); // 1 (addition)
+"hello".editDistance("hllo"); // 1 (removal)
+"hello".editDistance("haldo"); // 2 (substitutions)
+::
+
+method::similarity
+Returns a value between 0 and 1 representing the percentage similarity between this SequenceableCollection and the other SequenceableCollection.
+
+A value of 1 means the strings are exactly the same, a value of 0 means they are completely different.
+This is calculated based on the link::#-editDistance::
+code::
+"hello".similarity("hello"); // 1
+"hello".similarity("asdf"); // 0
+"word".similarity("wodr"); // 0.5
+::
+
+argument::other
+The SequenceableCollection to compare against
+
 subsection::Math Support - Unary Messages
 
 All of the following messages send the message link::#-performUnaryOp:: to the receiver with the unary message selector as an argument.
