@@ -186,6 +186,92 @@ TestArray : UnitTest {
 		}
 	}
 
+		// ----- fuzzy comparisons -----------------------------------------------
+
+	test_editDistance_emptyThis_isSizeThat {
+		var result = [].editDistance([0,1,2,3]);
+		var expected = 4;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_emptyThat_isSizeThis {
+		var result = [0,1,2,3].editDistance([]);
+		var expected = 4;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_emptyThis_emptyThat_isZero {
+		var result = [].editDistance([]);
+		var expected = 0;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_differentTypes_isOk {
+		var result = [0,1,2,3].editDistance([\a,\b,\c,\d]);
+		var expected = 4;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_mixedTypes_isOk {
+		var result = [0,1,2,3].editDistance([0,"hello",2,3]);
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsSubstitution {
+		var result = [0,1,2,3].editDistance([0,1,0,3]);
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsAddition {
+		var result = [0,1,2,3].editDistance([0,1,2,3,4]);
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsRemoval {
+		var result = [0,1,2,3].editDistance([0,1,2]);
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_editDistance_countsChanges {
+		var result = [0,1,2,3].editDistance([4,5,6,7,8]);
+		var expected = 5; // 0:4, 1:5, 2:6, 3:8, addition:8
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_emptyThis_emptyThat_isOne {
+		var result = [].similarity([]);
+		var expected = 1; // they're the same, even though they're empty
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_same_isOne {
+		var result = [0,1,2,3].similarity([0,1,2,3]);
+		var expected = 1;
+
+		this.assertEquals(result, expected);
+	}
+
+	test_similarity_different_isZero {
+		var result = [0,1,2,3].similarity([4,5,6,7]);
+		var expected = 0;
+
+		this.assertEquals(result, expected);
+	}
+
 } // End class
 
 TestArrayLace : UnitTest {
@@ -355,6 +441,4 @@ TestArrayLace : UnitTest {
 		this.assertEquals(result, [1, 4, 7, 2, 5, 8, 3, 6, 9],
 			"lace: sublists should lace just like arrays do");
 	}
-
-
 } // End class
